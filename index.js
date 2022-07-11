@@ -36,6 +36,7 @@ function Mover(m, x, y) {
   this.position = createVector(x, y);
   this.velocity = createVector(0, 0);
   this.rotation = 0;
+  this.theta = 0;
   this.acceleration = createVector(0, 0);
 }
 //충돌처리
@@ -62,6 +63,7 @@ Mover.prototype.update = function () {
   this.velocity.add(this.acceleration);
   // 속도에 따라 변하는 위치
   this.position.add(this.velocity);
+  this.rotation += this.theta;
   // 매 프레임마다 가속도 초기화
   this.acceleration.mult(0);
 };
@@ -98,6 +100,8 @@ Mover.prototype.checkCollision = function (other) {
     const theta = distance.heading();
     const sine = sin(theta);
     const cosine = cos(theta);
+    this.theta = theta * 0.01;
+    other.theta = -theta * 0.01;
 
     let bTemp = [new p5.Vector(), new p5.Vector()];
     bTemp[1].x = cosine * distance.x + sine * distance.y;
@@ -135,7 +139,6 @@ Mover.prototype.checkCollision = function (other) {
     other.position.y = this.position.y + bFinal[1].y;
 
     this.position.add(bFinal[0]);
-    this.rotation += vFinal[1].heading() * 0.1;
 
     // update velocities
     this.velocity.x = cosine * vFinal[0].x - sine * vFinal[0].y;
@@ -146,5 +149,3 @@ Mover.prototype.checkCollision = function (other) {
 };
 
 const d = document.getElementsByClassName("p5Canvas");
-
-console.log(d);
