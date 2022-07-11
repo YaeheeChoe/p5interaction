@@ -1,35 +1,19 @@
-// 바디에 적용되는 여러가지 물리학적 힘(Mover 클래스)
-// 바디는 중력을 끊임없이 경험합니다.
-// 바디는 물 속에서 유체 저항을 경험합니다.
-
-// 5개의 움직이는 형체
-let movers = [];
-
-// Liquid
-let liquid;
-
+//event
+let spritesheet;
 function setup() {
-  createCanvas(window.innerWidth, window.innerHeight);
-  reset();
-  // liquid(액체) 객체 생성
-  liquid = new Liquid(0, height / 2, width, height / 2, 0.1);
+  createCanvas(windowWidth, windowHeight);
+  spritesheet = loadImage("image.png");
 }
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+let movers = [];
 
 function draw() {
   background(127);
 
-  // 물 그리기
-  liquid.display();
-
   for (let i = 0; i < movers.length; i++) {
-    // Mover가 액체인가요?
-    if (liquid.contains(movers[i])) {
-      // 항력 계산하기
-      let dragForce = liquid.calculateDrag(movers[i]);
-      // Mover에 항력 적용하기
-      movers[i].applyForce(dragForce);
-    }
-
     // 중력은 여기서 mass(질량)에 따라 결정됩니다!
     let gravity = createVector(0, 0.1 * movers[i].mass);
     // 중력 적용하기
@@ -37,69 +21,33 @@ function draw() {
 
     // 업데이트하고 화면에 보이기(display)
     movers[i].update();
-    movers[i].display();
     movers[i].checkEdges();
+    checkCollision();
+    movers[i].display();
   }
 }
 
 function mousePressed() {
-  reset();
+  movers.push(new Mover(3, mouseX, mouseY));
 }
-
-// 모든 Mover 오브젝트들을 무작위로 재시작하기
-function reset() {
-  for (let i = 0; i < 9; i++) {
-    movers[i] = new Mover(random(0.5, 3), 40 + i * 70, 0);
-  }
-}
-
-let Liquid = function (x, y, w, h, c) {
-  this.x = x;
-  this.y = y;
-  this.w = w;
-  this.h = h;
-  this.c = c;
-};
-
-// Mover가 액체인가요?
-Liquid.prototype.contains = function (m) {
-  let l = m.position;
-  return (
-    l.x > this.x &&
-    l.x < this.x + this.w &&
-    l.y > this.y &&
-    l.y < this.y + this.h
-  );
-};
-
-// 항력 계산하기
-Liquid.prototype.calculateDrag = function (m) {
-  // Magnitue(크기) = 계수 * speed(속도)의 제곱
-  let speed = m.velocity.mag();
-  let dragMagnitude = this.c * speed * speed;
-
-  // 방향은 속도와 반대쪽으로
-  let dragForce = m.velocity.copy();
-  dragForce.mult(-1);
-
-  // 힘의 크기에 따라 조정하기
-  // dragForce.setMag(dragMagnitude);
-  dragForce.normalize();
-  dragForce.mult(dragMagnitude);
-  return dragForce;
-};
-
-Liquid.prototype.display = function () {
-  noStroke();
-  fill(50);
-  rect(this.x, this.y, this.w, this.h);
-};
 
 function Mover(m, x, y) {
   this.mass = m;
   this.position = createVector(x, y);
   this.velocity = createVector(0, 0);
+  this.rotation = 0;
   this.acceleration = createVector(0, 0);
+}
+//충돌처리
+function checkCollision() {
+  for (let i = 0; i < movers.length; i++) {
+    for (let j = 0; j < movers.length; j++) {
+      if (i == j) {
+        continue;
+      }
+      movers[i].checkCollision(movers[j]);
+    }
+  }
 }
 
 // 뉴턴(Newton)의 두번째 법칙: F = M * A
@@ -119,18 +67,81 @@ Mover.prototype.update = function () {
 };
 
 Mover.prototype.display = function () {
-  stroke(0);
-  strokeWeight(2);
-  fill(255, 127);
-  ellipse(this.position.x, this.position.y, this.mass * 16, this.mass * 16);
+  push();
+  imageMode(CENTER);
+  translate(this.position.x, this.position.y);
+  rotate(this.rotation);
+  image(spritesheet, 0, 0, this.mass * 16, this.mass * 16);
+  pop();
 };
 
 // 바닥면에서 튀어오르기
 Mover.prototype.checkEdges = function () {
   if (this.position.y > height - this.mass * 8) {
     // 바닥면에 닿을 때 약간의 완충 현상 발생
-    this.velocity.y *= -0.9;
+    this.velocity.y *= -0.5;
     this.position.y = height - this.mass * 8;
+  }
+};
+Mover.prototype.checkCollision = function (other) {
+  const distance = p5.Vector.sub(other.position, this.position);
+  const distanceMag = distance.mag();
+  const minDistance = this.mass * 4 * this.mass;
+
+  if (distanceMag < minDistance) {
+    const distanceCorrection = (minDistance - distanceMag) / 2.0;
+    const d = distance.copy();
+    const correctionVector = d.normalize().mult(distanceCorrection);
+    other.position.add(correctionVector);
+    this.position.sub(correctionVector);
+
+    const theta = distance.heading();
+    const sine = sin(theta);
+    const cosine = cos(theta);
+
+    let bTemp = [new p5.Vector(), new p5.Vector()];
+    bTemp[1].x = cosine * distance.x + sine * distance.y;
+    bTemp[1].y = cosine * distance.y - sine * distance.x;
+
+    let vTemp = [new p5.Vector(), new p5.Vector()];
+
+    vTemp[0].x = cosine * this.velocity.x + sine * this.velocity.y;
+    vTemp[0].y = cosine * this.velocity.y - sine * this.velocity.x;
+    vTemp[1].x = cosine * other.velocity.x + sine * other.velocity.y;
+    vTemp[1].y = cosine * other.velocity.y - sine * other.velocity.x;
+
+    let vFinal = [new p5.Vector(), new p5.Vector()];
+
+    vFinal[0].x =
+      ((this.mass - other.mass) * vTemp[0].x + 2 * other.mass * vTemp[1].x) /
+      (this.mass + other.mass);
+    vFinal[0].y = vTemp[0].y;
+    vFinal[1].x =
+      ((this.mass - other.mass) * vTemp[1].x + 2 * other.mass * vTemp[0].x) /
+      (this.mass + other.mass);
+    vFinal[1].y = vTemp[1].y;
+
+    bTemp[0].x += vFinal[0].x;
+    bTemp[1].x += vFinal[1].x;
+
+    let bFinal = [new p5.Vector(), new p5.Vector()];
+
+    bFinal[0].x = cosine * bTemp[0].x - sine * bTemp[0].y;
+    bFinal[0].y = cosine * bTemp[0].y + sine * bTemp[0].x;
+    bFinal[1].x = cosine * bTemp[1].x - sine * bTemp[1].y;
+    bFinal[1].y = cosine * bTemp[1].y + sine * bTemp[1].x;
+    // update balls to screen this.position
+    other.position.x = this.position.x + bFinal[1].x;
+    other.position.y = this.position.y + bFinal[1].y;
+
+    this.position.add(bFinal[0]);
+    this.rotation += vFinal[1].heading() * 0.1;
+
+    // update velocities
+    this.velocity.x = cosine * vFinal[0].x - sine * vFinal[0].y;
+    this.velocity.y = cosine * vFinal[0].y + sine * vFinal[0].x;
+    other.velocity.x = cosine * vFinal[1].x - sine * vFinal[1].y;
+    other.velocity.y = cosine * vFinal[1].y + sine * vFinal[1].x;
   }
 };
 
