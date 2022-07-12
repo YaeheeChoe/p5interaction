@@ -20,9 +20,9 @@ function draw() {
     movers[i].applyForce(gravity);
 
     // 업데이트하고 화면에 보이기(display)
+    checkCollision();
     movers[i].update();
     movers[i].checkEdges();
-    checkCollision();
     movers[i].display();
   }
 }
@@ -33,11 +33,10 @@ function mousePressed() {
 
 function Mover(m, x, y) {
   this.mass = m;
-  this.speed = 0.1;
+  this.speed = 0.05;
   this.position = createVector(x, y);
   this.velocity = createVector(0, 0);
   this.rotation = 0;
-  this.theta = 0;
   this.acceleration = createVector(0, 0);
 }
 //충돌처리
@@ -95,16 +94,17 @@ Mover.prototype.checkCollision = function (other) {
     let dx = other.position.x - this.position.x;
     let dy = other.position.y - this.position.y;
     let distance = sqrt(dx * dx + dy * dy);
-    let minDist = other.mass + this.mass;
-    if (distance < minDist) {
-      let angle = Math.atan2(dy, dx);
-      let targetX = this.position.x + Math.cos(angle) * minDist;
-      let targetY = this.position.y + Math.sin(angle) * minDist;
-      let ax = targetX - other.position.x;
-      let ay = targetY - other.position.y;
-      this.velocity.add(createVector(ax * this.speed, ay * this.speed));
-      other.velocity.sub(createVector(ax * other.speed, ay * other.speed));
-    }
+    let angle = Math.atan2(dy, dx);
+    let targetX = this.position.x + Math.cos(angle) * minDistance;
+    let targetY = this.position.y + Math.sin(angle) * minDistance;
+    let ax = targetX - other.position.x;
+    let ay = targetY - other.position.y;
+
+    this.theta += Math.atan2(ay, ax) * this.speed;
+    other.theta -= Math.atan2(ay, ax) * other.speed;
+
+    this.acceleration = createVector(ax * this.speed, ay * this.speed);
+    other.acceleration = createVector(ax * other.speed, ay * other.speed);
   }
 };
 
