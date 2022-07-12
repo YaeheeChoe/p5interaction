@@ -33,6 +33,7 @@ function mousePressed() {
 
 function Mover(m, x, y) {
   this.mass = m;
+  this.speed = 0.1;
   this.position = createVector(x, y);
   this.velocity = createVector(0, 0);
   this.rotation = 0;
@@ -91,60 +92,19 @@ Mover.prototype.checkCollision = function (other) {
   const minDistance = this.mass * 4 * this.mass;
 
   if (distanceMag < minDistance) {
-    const distanceCorrection = (minDistance - distanceMag) / 2.0;
-    const d = distance.copy();
-    const correctionVector = d.normalize().mult(distanceCorrection);
-    other.position.add(correctionVector);
-    this.position.sub(correctionVector);
-
-    const theta = distance.heading();
-    const sine = sin(theta);
-    const cosine = cos(theta);
-    this.theta = theta * 0.01;
-    other.theta = -theta * 0.01;
-
-    let bTemp = [new p5.Vector(), new p5.Vector()];
-    bTemp[1].x = cosine * distance.x + sine * distance.y;
-    bTemp[1].y = cosine * distance.y - sine * distance.x;
-
-    let vTemp = [new p5.Vector(), new p5.Vector()];
-
-    vTemp[0].x = cosine * this.velocity.x + sine * this.velocity.y;
-    vTemp[0].y = cosine * this.velocity.y - sine * this.velocity.x;
-    vTemp[1].x = cosine * other.velocity.x + sine * other.velocity.y;
-    vTemp[1].y = cosine * other.velocity.y - sine * other.velocity.x;
-
-    let vFinal = [new p5.Vector(), new p5.Vector()];
-
-    vFinal[0].x =
-      ((this.mass - other.mass) * vTemp[0].x + 2 * other.mass * vTemp[1].x) /
-      (this.mass + other.mass);
-    vFinal[0].y = vTemp[0].y;
-    vFinal[1].x =
-      ((this.mass - other.mass) * vTemp[1].x + 2 * other.mass * vTemp[0].x) /
-      (this.mass + other.mass);
-    vFinal[1].y = vTemp[1].y;
-
-    bTemp[0].x += vFinal[0].x;
-    bTemp[1].x += vFinal[1].x;
-
-    let bFinal = [new p5.Vector(), new p5.Vector()];
-
-    bFinal[0].x = cosine * bTemp[0].x - sine * bTemp[0].y;
-    bFinal[0].y = cosine * bTemp[0].y + sine * bTemp[0].x;
-    bFinal[1].x = cosine * bTemp[1].x - sine * bTemp[1].y;
-    bFinal[1].y = cosine * bTemp[1].y + sine * bTemp[1].x;
-    // update balls to screen this.position
-    other.position.x = this.position.x + bFinal[1].x;
-    other.position.y = this.position.y + bFinal[1].y;
-
-    this.position.add(bFinal[0]);
-
-    // update velocities
-    this.velocity.x = cosine * vFinal[0].x - sine * vFinal[0].y;
-    this.velocity.y = cosine * vFinal[0].y + sine * vFinal[0].x;
-    other.velocity.x = cosine * vFinal[1].x - sine * vFinal[1].y;
-    other.velocity.y = cosine * vFinal[1].y + sine * vFinal[1].x;
+    let dx = other.position.x - this.position.x;
+    let dy = other.position.y - this.position.y;
+    let distance = sqrt(dx * dx + dy * dy);
+    let minDist = other.mass + this.mass;
+    if (distance < minDist) {
+      let angle = Math.atan2(dy, dx);
+      let targetX = this.position.x + Math.cos(angle) * minDist;
+      let targetY = this.position.y + Math.sin(angle) * minDist;
+      let ax = targetX - other.position.x;
+      let ay = targetY - other.position.y;
+      this.velocity.add(createVector(ax * this.speed, ay * this.speed));
+      other.velocity.sub(createVector(ax * other.speed, ay * other.speed));
+    }
   }
 };
 
