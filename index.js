@@ -14,13 +14,13 @@ function draw() {
   background(127);
 
   for (let i = 0; i < movers.length; i++) {
+    checkCollision();
     // 중력은 여기서 mass(질량)에 따라 결정됩니다!
     let gravity = createVector(0, 0.1 * movers[i].mass);
     // 중력 적용하기
     movers[i].applyForce(gravity);
 
     // 업데이트하고 화면에 보이기(display)
-    checkCollision();
     movers[i].update();
     movers[i].checkEdges();
     movers[i].display();
@@ -33,7 +33,7 @@ function mousePressed() {
 
 function Mover(m, x, y) {
   this.mass = m;
-  this.speed = 0.05;
+  this.speed = 0.2;
   this.position = createVector(x, y);
   this.velocity = createVector(0, 0);
   this.rotation = 0;
@@ -81,7 +81,7 @@ Mover.prototype.display = function () {
 Mover.prototype.checkEdges = function () {
   if (this.position.y > height - this.mass * 8) {
     // 바닥면에 닿을 때 약간의 완충 현상 발생
-    this.velocity.y *= -0.5;
+    this.velocity.y *= -0.9;
     this.position.y = height - this.mass * 8;
   }
 };
